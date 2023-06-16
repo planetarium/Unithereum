@@ -2,6 +2,8 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Unithereum", "Unithereum\Unithereum.csproj", "{D3FF6C3C-0359-485D-A874-4A986123B3DE}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Unithereum.CodeGen", "Unithereum.CodeGen\Unithereum.CodeGen.csproj", "{CCBFD8D1-5B45-4BF8-BF35-41846F708A08}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -12,5 +14,9 @@ Global
 		{D3FF6C3C-0359-485D-A874-4A986123B3DE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D3FF6C3C-0359-485D-A874-4A986123B3DE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D3FF6C3C-0359-485D-A874-4A986123B3DE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CCBFD8D1-5B45-4BF8-BF35-41846F708A08}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CCBFD8D1-5B45-4BF8-BF35-41846F708A08}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CCBFD8D1-5B45-4BF8-BF35-41846F708A08}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CCBFD8D1-5B45-4BF8-BF35-41846F708A08}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
