@@ -44,6 +44,44 @@ namespace Unithereum.CodeGen
             }
         }
 
+        /// <summary>
+        /// Search for all .abi and .bin files in the Asset/ directory and force import them.
+        /// </summary>
+        /// <remarks>As the <see cref="OnPreprocessAsset"/> function will generate code for imported .abi files,
+        /// this function will regenerate code for all .abi files without explicitly calling <see cref="Generate"/>.
+        /// </remarks>
+        [MenuItem("Unithereum/Regenerate All...")]
+        private static void RegenerateAllMenu()
+        {
+            if (!EditorUtility.DisplayDialog(
+                    "Regenerate Code For All Contracts",
+                    "This will search for all .abi and .bin files under the Asset/ directory, import, and"
+                    + " regenerate code for the contracts.\n\nTHIS WILL REMOVE ALL CONTENTS OF THE"
+                    + " Assets/ContractServices/ DIRECTORY!\n\nProceed?",
+                    "Regenerate",
+                    "Cancel")) return;
+
+            var codeGenPath = Path.Combine(Application.dataPath, "ContractServices");
+            if (Directory.Exists(codeGenPath)) Directory.Delete(codeGenPath, recursive: true);
+
+            foreach (var path in Directory.GetFiles(Application.dataPath, "*.abi", SearchOption.AllDirectories))
+            {
+                var binPath = Path.ChangeExtension(path, ".bin");
+                if (File.Exists(binPath))
+                    AssetDatabase.ImportAsset(
+                        Path.Combine(binPath.Substring(Path.GetDirectoryName(Application.dataPath)!.Length + 1)),
+                        ImportAssetOptions.ForceUpdate);
+                AssetDatabase.ImportAsset(
+                    Path.Combine(path.Substring(Path.GetDirectoryName(Application.dataPath)!.Length + 1)),
+                    ImportAssetOptions.ForceUpdate);
+            }
+
+            EditorUtility.DisplayDialog(
+                "Regeneration Complete",
+                "Code for all available contracts has been regenerated.",
+                "OK");
+        }
+
         [UnityEditor.Callbacks.DidReloadScripts]
         private static void OnScriptsReloaded()
         {
