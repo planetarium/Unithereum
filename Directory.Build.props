@@ -1,0 +1,12 @@
+<Project>
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <Nullable>enable</Nullable>
+    <OutputPath>$(SolutionDir)Unity\Assets\Plugins\Unithereum\Runtime\$(MSBuildProjectName)</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <GenerateDependencyFile>false</GenerateDependencyFile>
+    <DebugType Condition="'$(Configuration)' == 'Release'">None</DebugType>
+  </PropertyGroup>
+
+</Project>

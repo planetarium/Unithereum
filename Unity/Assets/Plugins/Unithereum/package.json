@@ -1,0 +1,10 @@
+{
+    "name": "com.planetariumhq.unithereum",
+    "displayName": "Unithereum",
+    "version": "0.0.0-preview.0",
+    "description": "Ethereum integration package for Unity.",
+    "author": "Planetarium (https://planetarium.dev/)",
+    "dependencies": {},
+    "keywords": [ "ethereum" ],
+    "license": "LGPL-2.1"
+}
