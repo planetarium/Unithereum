@@ -23,6 +23,10 @@
   <ItemGroup>
     <ResourceFiles Include="Resources\**\*" />
   </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="11.0.2" />
+  </ItemGroup>
   
   <Target Name="CopyResources" AfterTargets="AfterBuild">
     <Copy SourceFiles="@(ResourceFiles)" DestinationFolder="$(OutputPath)\%(RecursiveDir)" />
