@@ -13,7 +13,18 @@
 </PropertyGroup>
 
 <ItemGroup>
-  <PackageReference Include="Nethereum.Web3" Version="4.14.0" />
+  <Reference Include="Nethereum.Accounts">
+    <HintPath>lib\Nethereum.Accounts.dll</HintPath>
+  </Reference>
+  <Reference Include="Nethereum.KeyStore">
+    <HintPath>lib\Nethereum.KeyStore.dll</HintPath>
+  </Reference>
+  <Reference Include="Nethereum.Signer.EIP712">
+    <HintPath>lib\Nethereum.Signer.EIP712.dll</HintPath>
+  </Reference>
+  <Reference Include="Nethereum.Web3">
+    <HintPath>$(MSBuildProjectDirectory)lib\Nethereum.Web3.dll</HintPath>
+  </Reference>
 </ItemGroup>
 
 <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />

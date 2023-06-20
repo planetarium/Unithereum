@@ -40,6 +40,23 @@
     "com.unity.modules.video": "1.0.0",
     "com.unity.modules.vr": "1.0.0",
     "com.unity.modules.wind": "1.0.0",
-    "com.unity.modules.xr": "1.0.0"
-  }
+    "com.unity.modules.xr": "1.0.0",
+    "org.nuget.microsoft.extensions.logging.abstractions": "6.0.0",
+    "org.nuget.portable.bouncycastle": "1.8.2"
+  },
+  "scopedRegistries": [
+    {
+      "name": "package.openupm.com",
+      "url": "https://package.openupm.com",
+      "scopes": [
+        "com.openupm",
+        "org.nuget.microsoft.extensions.logging.abstractions",
+        "org.nuget.portable.bouncycastle",
+        "org.nuget.system.buffers",
+        "org.nuget.system.memory",
+        "org.nuget.system.numerics.vectors",
+        "org.nuget.system.runtime.compilerservices.unsafe"
+      ]
+    }
+  ]
 }

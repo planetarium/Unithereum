@@ -4,7 +4,10 @@
     "version": "0.0.0-preview.0",
     "description": "Ethereum integration package for Unity.",
     "author": "Planetarium (https://planetarium.dev/)",
-    "dependencies": {},
+    "dependencies": {
+        "org.nuget.microsoft.extensions.logging.abstractions": "6.0.0",
+        "org.nuget.portable.bouncycastle": "1.8.2"
+    },
     "keywords": [ "ethereum" ],
     "license": "LGPL-2.1"
 }

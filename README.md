@@ -7,9 +7,48 @@ blockchain nodes.
 Installation
 ------------
 
-Open the Unity Package Manager and add a package from a git URL. The URL for
-this package is:
-`https://github.com/planetarium/Unithereum.git?path=/Unity/Assets/Plugins/Unithereum`.
+Your project has to be configured to use the [OpenUPM] registry for the
+dependencies. If you have not already done so, you can add the OpenUPM registry
+by opening the Unity Package Manager, clicking the cog icon located on the left
+side of the search bar in the top right corner, and selecting
+`Advanced Project Settings`. In the window that appears, click the `+` button
+on the bottom left of the `Scoped Registries` section and enter the following
+information:
+
+- Name: `OpenUPM`
+- URL: `https://package.openupm.com`
+- Scope(s) (add entries with the `+` button on the bottom right):
+    - `com.openupm`
+    - `org.nuget.microsoft.extensions.logging.abstractions`
+    - `org.nuget.portable.bouncycastle`
+    - `org.nuget.system.buffers`
+    - `org.nuget.system.memory`
+    - `org.nuget.system.numerics.vectors`
+    - `org.nuget.system.runtime.compilerservices.unsafe`
+
+Alternatively, you may use the [UnityNuGet] registry which provides a curated
+list of NuGet packages as UPM packages and includes the required dependencies
+instead of OpenUPM. To add the UnityNuGet registry, follow the same steps as
+above, but use the following information:
+
+- Name: `UnityNuGet`
+- URL: `https://unitynuget-registry.azurewebsites.net`
+- Scope(s): `org.nuget`
+
+Also, note that `Unithereum` requires `Newtonsoft.Json` as a dependency, but
+does not list it as a dependency in the package manifest to avoid conflicts
+in case it is provided in other means. If you do not have other packages that
+depend on `Newtonsoft.Json` installed, you may install it by adding the
+`com.unity.nuget.newtonsoft-json` package by name in the Unity Package Manager.
+
+Then, open the Unity Package Manager and add a package from a git URL. The URL
+for this package is:
+```text
+https://github.com/planetarium/Unithereum.git?path=/Unity/Assets/Plugins/Unithereum
+````
+
+[OpenUPM]: https://openupm.com/
+[UnityNuGet]: https://github.com/xoofx/UnityNuGet
 
 Code Generation
 ---------------
