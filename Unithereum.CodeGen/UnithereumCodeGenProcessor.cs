@@ -12,45 +12,29 @@ namespace Unithereum.CodeGen
     {
         public override int GetPostprocessOrder() => 0;
 
-        private static readonly Config Config = Config.GetConfig();
-
         /// <summary>
         /// Detect .abi and .bin files on import and generate code.
         /// </summary>
         public void OnPreprocessAsset()
         {
-            var changedPath = Path.Combine(
-                Path.GetDirectoryName(Application.dataPath)!,
-                this.assetPath
-            );
-            if (changedPath.EndsWith(".abi", StringComparison.OrdinalIgnoreCase))
-            {
-                var binPath = Path.ChangeExtension(changedPath, ".bin");
-                Generate(changedPath, File.Exists(binPath) ? binPath : null);
-            }
-            else if (changedPath.EndsWith(".bin", StringComparison.OrdinalIgnoreCase))
-            {
-                var abiPath = Path.ChangeExtension(changedPath, ".abi");
-                if (File.Exists(abiPath))
-                    Generate(abiPath, changedPath);
-            }
+            var changedPath = Path.Combine(Path.GetDirectoryName(Application.dataPath)!, assetPath);
+            FindAbiBinPairAndGenerate(changedPath);
         }
 
         /// <summary>
-        /// Search for all .abi and .bin files in the Asset/ directory and force import them.
+        ///     Search for all .abi and .bin files in the Asset/ directory and force import them.
         /// </summary>
-        /// <remarks>As the <see cref="OnPreprocessAsset"/> function will generate code for imported .abi files,
-        /// this function will regenerate code for all .abi files without explicitly calling <see cref="Generate"/>.
-        /// </remarks>
         [MenuItem("Unithereum/Regenerate All...")]
         public static void RegenerateAllMenu()
         {
-            if (
-                !EditorUtility.DisplayDialog(
+            var codeGenPath = Path.Combine(Application.dataPath, Config.GetConfig().OutputDir);
+            if (Directory.Exists(codeGenPath)) Directory.Delete(codeGenPath, true);
+
+            if (!EditorUtility.DisplayDialog(
                     "Regenerate Code For All Contracts",
-                    "This will search for all .abi and .bin files under the Asset/ directory, import, and"
-                        + " regenerate code for the contracts.\n\nTHIS WILL REMOVE ALL CONTENTS OF THE"
-                        + $" Assets/{Config.OutputDir}/ DIRECTORY!\n\nProceed?",
+                    "This will search for all .abi and .bin files under the Unity Project directory, " +
+                    "import, and regenerate code for the contracts.\n\nTHIS WILL REMOVE ALL CONTENTS OF THE " +
+                    $"{codeGenPath}/ DIRECTORY!\n\nProceed?",
                     "Regenerate",
                     "Cancel"
                 )
@@ -59,34 +43,7 @@ namespace Unithereum.CodeGen
                 return;
             }
 
-            var codeGenPath = Path.Combine(Application.dataPath, Config.OutputDir);
-            if (Directory.Exists(codeGenPath))
-                Directory.Delete(codeGenPath, recursive: true);
-
-            foreach (
-                var path in Directory.GetFiles(
-                    Application.dataPath,
-                    "*.abi",
-                    SearchOption.AllDirectories
-                )
-            )
-            {
-                var binPath = Path.ChangeExtension(path, ".bin");
-                if (File.Exists(binPath))
-                {
-                    AssetDatabase.ImportAsset(
-                        Path.Combine(
-                            binPath[(Path.GetDirectoryName(Application.dataPath)!.Length + 1)..]
-                        ),
-                        ImportAssetOptions.ForceUpdate
-                    );
-                }
-
-                AssetDatabase.ImportAsset(
-                    Path.Combine(path[(Path.GetDirectoryName(Application.dataPath)!.Length + 1)..]),
-                    ImportAssetOptions.ForceUpdate
-                );
-            }
+            GenerateAll();
 
             EditorUtility.DisplayDialog(
                 "Regeneration Complete",
@@ -98,15 +55,35 @@ namespace Unithereum.CodeGen
         [DidReloadScripts]
         public static void OnScriptsReloaded()
         {
-            if (!(Config.DotnetPath is null))
-                return;
+            if (Config.GetConfig().DotnetPath is { }) return;
             Debug.LogWarning("dotnet not found in PATH, Nethereum code generation will not work.");
+        }
+
+        private static void GenerateAll()
+        {
+            foreach (var path in Directory.GetFiles(Path.GetDirectoryName(Application.dataPath)!, "*.abi",
+                         SearchOption.AllDirectories))
+                FindAbiBinPairAndGenerate(path);
+        }
+
+        private static void FindAbiBinPairAndGenerate(string path)
+        {
+            if (path.EndsWith(".abi", StringComparison.OrdinalIgnoreCase))
+            {
+                var binPath = Path.ChangeExtension(path, ".bin");
+                Generate(path, File.Exists(binPath) ? binPath : null);
+            }
+            else if (path.EndsWith(".bin", StringComparison.OrdinalIgnoreCase))
+            {
+                var abiPath = Path.ChangeExtension(path, ".abi");
+                if (File.Exists(abiPath)) Generate(abiPath, path);
+            }
         }
 
         private static void Generate(string abiPath, string? binPath)
         {
-            if (!(Config.DotnetPath is { } dotnet))
-                return;
+            var config = Config.GetConfig();
+            if (!(config.DotnetPath is { } dotnet)) return;
 
             var assemblyDir = Path.GetDirectoryName(
                 new Uri(typeof(UnithereumCodeGenProcessor).Assembly.CodeBase).LocalPath
@@ -127,12 +104,10 @@ namespace Unithereum.CodeGen
             var error = restoreProcess.StandardError.ReadToEnd();
             restoreProcess.WaitForExit();
             if (restoreProcess.ExitCode != 0)
-            {
                 throw new InvalidOperationException("dotnet tool restore failed: " + error);
-            }
 
-            var codegenPath = Path.Combine(Application.dataPath, Config.OutputDir);
-            var codegenNamespace = Config.NsPrefix;
+            var codegenPath = Path.Combine(Application.dataPath, config.OutputDir);
+            var codegenNamespace = config.NsPrefix;
             var assemblyDefinition = Path.Combine(codegenPath, codegenNamespace + ".asmdef");
             var cscDirectives = Path.Combine(codegenPath, "csc.rsp");
 
@@ -182,16 +157,12 @@ namespace Unithereum.CodeGen
             codegenProcess.WaitForExit();
 
             if (codegenProcess.ExitCode != 0)
-            {
                 throw new InvalidOperationException(
-                    "Failed to generate Nethereum contract service code: " + error
-                );
-            }
+                    "Failed to generate Nethereum contract service code: " + error);
 
             AssetDatabase.ImportAsset(
-                Path.Combine(Path.GetFileName(Application.dataPath), Config.OutputDir),
-                ImportAssetOptions.ImportRecursive
-            );
+                Path.Combine(Path.GetFileName(Application.dataPath), config.OutputDir),
+                ImportAssetOptions.ImportRecursive);
         }
     }
 }
