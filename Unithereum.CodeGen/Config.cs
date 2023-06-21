@@ -5,7 +5,9 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
 
@@ -68,7 +70,7 @@ namespace Unithereum.CodeGen
         private static Config ReadFromJsonFile(string configPath)
         {
             var json = File.ReadAllText(configPath);
-            var config = JsonConvert.DeserializeObject<Config>(json);
+            var config = JsonConvert.DeserializeObject<Config>(json, new ConfigDeserializer());
             return config;
         }
 
@@ -225,5 +227,52 @@ namespace Unithereum.CodeGen
         {
             return str != string.Empty ? str[^1] == '.' ? SanitizeTrailingDots(str[..^1]) + "_" : str : string.Empty;
         }
+    }
+}
+
+public class ConfigDeserializer : JsonConverter
+{
+    public override object? ReadJson(JsonReader reader, Type objectType, object existingValue,
+        JsonSerializer serializer)
+    {
+        if (reader.TokenType == JsonToken.Null)
+            return null;
+
+        var target = new JObject();
+
+        foreach (var jToken in JToken.Load(reader).Children())
+        {
+            var property = (JProperty)jToken;
+            if (char.IsUpper(property.Name[0]))
+            {
+                Debug.LogWarning($"Unithereum CodeGen: invalid config property {property.Name}. "
+                                 + "Use camelCase in codegen.config.json.");
+                continue;
+            }
+
+            property = new JProperty(Regex.Replace(property.Name, @"\b\p{Ll}", match => match.Value.ToUpper()),
+                property.Value);
+            if (objectType.GetProperty(property.Name) == null)
+            {
+                Debug.LogWarning($"Unithereum CodeGen: invalid config property {property.Name}. "
+                                 + "Unknown config type");
+                continue;
+            }
+
+            target.Add(property);
+        }
+
+        return target.ToObject(objectType);
+    }
+
+    public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+    {
+        var o = (JObject)JToken.FromObject(value);
+        o.WriteTo(writer);
+    }
+
+    public override bool CanConvert(Type objectType)
+    {
+        return true;
     }
 }
