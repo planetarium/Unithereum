@@ -52,7 +52,7 @@ namespace Unithereum.CodeGen
 
         public static Config GetConfig()
         {
-            var path = "Assets/codegen.json";
+            var path = Path.Combine(Path.GetDirectoryName(Application.dataPath)!, "codegen.config.json");
             return File.Exists(path) ? ReadFromJsonFile(path) : new Config();
         }
 
