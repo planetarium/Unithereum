@@ -7,6 +7,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using Newtonsoft.Json;
 using UnityEngine;
+using Debug = UnityEngine.Debug;
 
 namespace Unithereum.CodeGen
 {
@@ -44,6 +45,14 @@ namespace Unithereum.CodeGen
         public Config([Optional] string? dotnetPath, [Optional] string? nsPrefix, [Optional] string? outputDir)
         {
             const string defaultName = "ContractServices";
+
+            if (nsPrefix != null && !ValidateNamespacePrefix(nsPrefix))
+            {
+                var error = new InvalidOperationException(
+                    $"Invalid Unithereum CodeGen config: NsPrefix ({nsPrefix}). Use proper C# namespace identifier.");
+                Debug.LogError(error.Message);
+                throw error;
+            }
 
             DotnetPath = dotnetPath ?? GetDotnetPath();
             NsPrefix = nsPrefix ?? GetNamespacePrefix() + '.' + defaultName;
@@ -154,13 +163,23 @@ namespace Unithereum.CodeGen
             return defaultShell;
         }
 
+        private static bool ValidateNamespacePrefix(string nsPrefix)
+        {
+            return nsPrefix == SanitizeNamespacePrefix(nsPrefix);
+        }
+
         private static string GetNamespacePrefix()
         {
-            var productName =
+            return SanitizeNamespacePrefix(Application.productName);
+        }
+
+        private static string SanitizeNamespacePrefix(string nsPrefix)
+        {
+            var result =
                 SanitizeLeadingDots(
                     SanitizeTrailingDots(
                         string.Join("",
-                            Application.productName.Select(c =>
+                            nsPrefix.Select(c =>
                             {
                                 var cat = CharUnicodeInfo.GetUnicodeCategory(c);
                                 return cat == UnicodeCategory.UppercaseLetter ||
@@ -168,16 +187,16 @@ namespace Unithereum.CodeGen
                                        cat == UnicodeCategory.TitlecaseLetter ||
                                        cat == UnicodeCategory.ModifierLetter ||
                                        cat == UnicodeCategory.OtherLetter ||
+                                       cat == UnicodeCategory.LetterNumber ||
                                        cat == UnicodeCategory.SpacingCombiningMark ||
                                        cat == UnicodeCategory.DecimalDigitNumber ||
-                                       cat == UnicodeCategory.LetterNumber ||
                                        cat == UnicodeCategory.ConnectorPunctuation ||
                                        c == '.'
                                     ? c.ToString()
                                     : "_";
                             }))));
 
-            var firstLetterCat = CharUnicodeInfo.GetUnicodeCategory(productName[0]);
+            var firstLetterCat = CharUnicodeInfo.GetUnicodeCategory(result[0]);
             if (
                 firstLetterCat != UnicodeCategory.UppercaseLetter &&
                 firstLetterCat != UnicodeCategory.LowercaseLetter &&
@@ -185,15 +204,16 @@ namespace Unithereum.CodeGen
                 firstLetterCat != UnicodeCategory.ModifierLetter &&
                 firstLetterCat != UnicodeCategory.OtherLetter &&
                 firstLetterCat != UnicodeCategory.LetterNumber)
-                productName = "_" + productName;
+                result = "_" + result;
 
-            productName = string.Join(
+            result = string.Join(
                 ".",
-                productName
+                result
                     .Split(".")
+                    .Where(part => !string.IsNullOrWhiteSpace(part))
                     .Select(part => CsharpKeywords.Contains(part) ? "@" + part : part));
 
-            return productName;
+            return result;
         }
 
         private static string SanitizeLeadingDots(string str)
