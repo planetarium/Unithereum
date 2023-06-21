@@ -71,6 +71,7 @@ namespace Unithereum.CodeGen
         {
             var json = File.ReadAllText(configPath);
             var config = JsonConvert.DeserializeObject<Config>(json, new ConfigDeserializer());
+            if (config is null) throw new InvalidOperationException("Failed to create config object.");
             return config;
         }
 
@@ -232,7 +233,7 @@ namespace Unithereum.CodeGen
 
 public class ConfigDeserializer : JsonConverter
 {
-    public override object? ReadJson(JsonReader reader, Type objectType, object existingValue,
+    public override object? ReadJson(JsonReader reader, Type objectType, object? existingValue,
         JsonSerializer serializer)
     {
         if (reader.TokenType == JsonToken.Null)
@@ -265,9 +266,9 @@ public class ConfigDeserializer : JsonConverter
         return target.ToObject(objectType);
     }
 
-    public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+    public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
     {
-        var o = (JObject)JToken.FromObject(value);
+        var o = (JObject)JToken.FromObject(value!);
         o.WriteTo(writer);
     }
 
