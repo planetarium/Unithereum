@@ -51,7 +51,7 @@ namespace Unithereum.CodeGen
             if (nsPrefix != null && !ValidateNamespacePrefix(nsPrefix))
             {
                 var error = new InvalidOperationException(
-                    $"Invalid Unithereum CodeGen config: NsPrefix ({nsPrefix}). Use proper C# namespace identifier.");
+                    $"Invalid Unithereum CodeGen config: {nameof(nsPrefix)} ({nsPrefix}). Use proper C# namespace identifier.");
                 Debug.LogError(error.Message);
                 throw error;
             }
@@ -71,14 +71,11 @@ namespace Unithereum.CodeGen
         {
             var json = File.ReadAllText(configPath);
             var config = JsonConvert.DeserializeObject<Config>(json, new ConfigDeserializer());
-            if (config is null) throw new InvalidOperationException("Failed to create config object.");
+            if (config is null) throw new InvalidOperationException($"Failed to create {nameof(Config)} object.");
             return config;
         }
 
-        public override string ToString()
-        {
-            return base.ToString() + ": " + JsonConvert.SerializeObject(this);
-        }
+        public override string ToString() => JsonConvert.SerializeObject(this);
 
         private static string? GetDotnetPath()
         {

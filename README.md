@@ -72,10 +72,10 @@ the `ProductName` will be sanitized to qualify as a [C# identifier name].
 [C# identifier name]: https://learn.microsoft.com/en-us/dotnet/csharp/fundamentals/coding-style/identifier-names
 
 ### Configuration
-You can override default properties by adding codegen.config.json to Unity Project root.
+You may override the default configuration with a `codegen.config.json` file in the Unity project root.
 Available options are `dotnetPath`, `nsPrefix`, and `outputDir`.
-Ensure `nsPrefix` should follow [C# identifier name],
-and note that `outputDir` path is relative to Unity `Assets/` directory.
+Ensure that `nsPrefix` conforms to the [C# identifier name] constraints.
+Also, note that the `outputDir` is relative to the `Assets/` directory of the Unity project..
 
 #### Example
 ```json
