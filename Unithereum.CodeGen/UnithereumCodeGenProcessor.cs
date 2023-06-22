@@ -28,7 +28,6 @@ namespace Unithereum.CodeGen
         public static void RegenerateAllMenu()
         {
             var codeGenPath = Path.Combine(Application.dataPath, Config.GetConfig().OutputDir);
-            if (Directory.Exists(codeGenPath)) Directory.Delete(codeGenPath, true);
 
             if (!EditorUtility.DisplayDialog(
                     "Regenerate Code For All Contracts",
@@ -43,6 +42,7 @@ namespace Unithereum.CodeGen
                 return;
             }
 
+            if (Directory.Exists(codeGenPath)) Directory.Delete(codeGenPath, true);
             GenerateAll();
 
             EditorUtility.DisplayDialog(
@@ -107,7 +107,7 @@ namespace Unithereum.CodeGen
                 throw new InvalidOperationException("dotnet tool restore failed: " + error);
 
             var codegenPath = Path.Combine(Application.dataPath, config.OutputDir);
-            var codegenNamespace = config.NsPrefix;
+            var codegenNamespace = config.NamespacePrefix;
             var assemblyDefinition = Path.Combine(codegenPath, codegenNamespace + ".asmdef");
             var cscDirectives = Path.Combine(codegenPath, "csc.rsp");
 

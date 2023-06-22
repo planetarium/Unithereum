@@ -35,7 +35,7 @@ namespace Unithereum.CodeGen
         ///     Namespace prefix for generated contract service classes.
         ///     <para>Default: (Application.productName).ContractServices</para>
         /// </summary>
-        public string NsPrefix { get; }
+        public string NamespacePrefix { get; }
 
         /// <summary>
         ///     Relative path to `Asset` directory for generated contract service class files.
@@ -44,20 +44,20 @@ namespace Unithereum.CodeGen
         public string OutputDir { get; }
 
         [JsonConstructor]
-        public Config([Optional] string? dotnetPath, [Optional] string? nsPrefix, [Optional] string? outputDir)
+        public Config([Optional] string? dotnetPath, [Optional] string? namespacePrefix, [Optional] string? outputDir)
         {
             const string defaultName = "ContractServices";
 
-            if (nsPrefix != null && !ValidateNamespacePrefix(nsPrefix))
+            if (namespacePrefix != null && !ValidateNamespacePrefix(namespacePrefix))
             {
                 var error = new InvalidOperationException(
-                    $"Invalid Unithereum CodeGen config: {nameof(nsPrefix)} ({nsPrefix}). Use proper C# namespace identifier.");
+                    $"Invalid Unithereum CodeGen config: {nameof(namespacePrefix)} ({namespacePrefix}). Use proper C# namespace identifier.");
                 Debug.LogError(error.Message);
                 throw error;
             }
 
             DotnetPath = dotnetPath ?? GetDotnetPath();
-            NsPrefix = nsPrefix ?? GetNamespacePrefix() + '.' + defaultName;
+            NamespacePrefix = namespacePrefix ?? GetDefaultNamespacePrefix() + '.' + defaultName;
             OutputDir = outputDir ?? defaultName;
         }
 
@@ -168,7 +168,7 @@ namespace Unithereum.CodeGen
             return nsPrefix == SanitizeNamespacePrefix(nsPrefix);
         }
 
-        private static string GetNamespacePrefix()
+        private static string GetDefaultNamespacePrefix()
         {
             return SanitizeNamespacePrefix(Application.productName);
         }
@@ -241,22 +241,16 @@ public class ConfigDeserializer : JsonConverter
         foreach (var jToken in JToken.Load(reader).Children())
         {
             var property = (JProperty)jToken;
-            if (char.IsUpper(property.Name[0]))
-            {
-                Debug.LogWarning($"Unithereum CodeGen: invalid config property {property.Name}. "
-                                 + "Use camelCase in codegen.config.json.");
-                continue;
-            }
+            var pascalCasePropertyName = char.ToUpper(property.Name[0]) + property.Name[1..];
 
-            property = new JProperty(Regex.Replace(property.Name, @"\b\p{Ll}", match => match.Value.ToUpper()),
-                property.Value);
-            if (objectType.GetProperty(property.Name) == null)
+            if (objectType.GetProperty(pascalCasePropertyName) == null)
             {
                 Debug.LogWarning($"Unithereum CodeGen: invalid config property {property.Name}. "
                                  + "Unknown config type");
                 continue;
             }
 
+            property = new JProperty(pascalCasePropertyName, property.Value);
             target.Add(property);
         }
 
