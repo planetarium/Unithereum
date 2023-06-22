@@ -55,8 +55,17 @@ namespace Unithereum.CodeGen
         [DidReloadScripts]
         public static void OnScriptsReloaded()
         {
-            if (Config.GetConfig().DotnetPath is { }) return;
-            Debug.LogWarning("dotnet not found in PATH, Nethereum code generation will not work.");
+            try
+            {
+                Config.GetConfig();
+            }
+            catch (InvalidCodeGenConfigurationException e)
+            {
+                if (e.PropertyKey != null)
+                    Debug.LogError(e);
+                else
+                    Debug.LogWarning(e);
+            }
         }
 
         private static void GenerateAll()

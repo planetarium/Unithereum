@@ -5,7 +5,6 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
@@ -29,7 +28,7 @@ namespace Unithereum.CodeGen
         /// <summary>
         ///     Absolute path to `dotnet` executable.
         /// </summary>
-        public string? DotnetPath { get; }
+        public string DotnetPath { get; }
 
         /// <summary>
         ///     Namespace prefix for generated contract service classes.
@@ -50,13 +49,25 @@ namespace Unithereum.CodeGen
 
             if (namespacePrefix != null && !ValidateNamespacePrefix(namespacePrefix))
             {
-                var error = new InvalidOperationException(
-                    $"Invalid Unithereum CodeGen config: {nameof(namespacePrefix)} ({namespacePrefix}). Use proper C# namespace identifier.");
-                Debug.LogError(error.Message);
-                throw error;
+                throw new InvalidCodeGenConfigurationException(
+                    $"Invalid Unithereum CodeGen config: {nameof(namespacePrefix)} ({namespacePrefix}). Use proper C# namespace identifier.",
+                    key: nameof(namespacePrefix),
+                    value: namespacePrefix
+                );
             }
 
-            DotnetPath = dotnetPath ?? GetDotnetPath();
+            if (dotnetPath != null && !File.Exists(dotnetPath))
+            {
+                throw new InvalidCodeGenConfigurationException(
+                    $"Invalid Unithereum CodeGen config: {nameof(dotnetPath)} ({dotnetPath}). `dotnet` executable doesn't exist at given path.",
+                    key: nameof(dotnetPath),
+                    value: dotnetPath
+                );
+            }
+
+            DotnetPath = dotnetPath ?? GetDotnetPath() ??
+                throw new InvalidCodeGenConfigurationException(
+                    "`dotnet` executable not found in PATH, Nethereum code generation will not work.");
             NamespacePrefix = namespacePrefix ?? GetDefaultNamespacePrefix() + '.' + defaultName;
             OutputDir = outputDir ?? defaultName;
         }
@@ -228,7 +239,22 @@ namespace Unithereum.CodeGen
     }
 }
 
-public class ConfigDeserializer : JsonConverter
+internal class InvalidCodeGenConfigurationException : Exception
+{
+    public string? PropertyKey { get; }
+    public string? PropertyValue { get; }
+
+
+    public InvalidCodeGenConfigurationException(string message) : base(message) { }
+
+    public InvalidCodeGenConfigurationException(string message, string key, string value) : this(message)
+    {
+        PropertyKey = key;
+        PropertyValue = value;
+    }
+}
+
+internal class ConfigDeserializer : JsonConverter
 {
     public override object? ReadJson(JsonReader reader, Type objectType, object? existingValue,
         JsonSerializer serializer)
