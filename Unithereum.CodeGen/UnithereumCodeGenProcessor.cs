@@ -27,7 +27,10 @@ namespace Unithereum.CodeGen
         [MenuItem("Unithereum/Regenerate All...")]
         public static void RegenerateAllMenu()
         {
-            var codeGenPath = Path.Combine(Application.dataPath, Config.GetConfig().OutputDir);
+            var config = GetConfig();
+            if (config is null) return;
+
+            var codeGenPath = Path.Combine(Application.dataPath, config.OutputDir);
 
             if (!EditorUtility.DisplayDialog(
                     "Regenerate Code For All Contracts",
@@ -55,9 +58,14 @@ namespace Unithereum.CodeGen
         [DidReloadScripts]
         public static void OnScriptsReloaded()
         {
+            GetConfig();
+        }
+
+        private static Config? GetConfig()
+        {
             try
             {
-                Config.GetConfig();
+                return Config.GetConfig();
             }
             catch (InvalidCodeGenConfigurationException e)
             {
@@ -66,6 +74,8 @@ namespace Unithereum.CodeGen
                 else
                     Debug.LogWarning(e);
             }
+
+            return null;
         }
 
         private static void GenerateAll()
@@ -91,8 +101,10 @@ namespace Unithereum.CodeGen
 
         private static void Generate(string abiPath, string? binPath)
         {
-            var config = Config.GetConfig();
-            if (!(config.DotnetPath is { } dotnet)) return;
+            var config = GetConfig();
+            if (config is null) return;
+
+            var dotnet = config.DotnetPath;
 
             var assemblyDir = Path.GetDirectoryName(
                 new Uri(typeof(UnithereumCodeGenProcessor).Assembly.CodeBase).LocalPath

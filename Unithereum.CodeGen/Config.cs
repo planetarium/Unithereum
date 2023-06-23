@@ -47,21 +47,21 @@ namespace Unithereum.CodeGen
         {
             const string defaultName = "ContractServices";
 
-            if (namespacePrefix != null && !ValidateNamespacePrefix(namespacePrefix))
-            {
-                throw new InvalidCodeGenConfigurationException(
-                    $"Invalid Unithereum CodeGen config: {nameof(namespacePrefix)} ({namespacePrefix}). Use proper C# namespace identifier.",
-                    key: nameof(namespacePrefix),
-                    value: namespacePrefix
-                );
-            }
-
             if (dotnetPath != null && !File.Exists(dotnetPath))
             {
                 throw new InvalidCodeGenConfigurationException(
-                    $"Invalid Unithereum CodeGen config: {nameof(dotnetPath)} ({dotnetPath}). `dotnet` executable doesn't exist at given path.",
+                    "`dotnet` executable doesn't exist at given path.",
                     key: nameof(dotnetPath),
                     value: dotnetPath
+                );
+            }
+
+            if (namespacePrefix != null && !ValidateNamespacePrefix(namespacePrefix))
+            {
+                throw new InvalidCodeGenConfigurationException(
+                    "Use proper C# namespace identifier.",
+                    key: nameof(namespacePrefix),
+                    value: namespacePrefix
                 );
             }
 
@@ -244,13 +244,20 @@ internal class InvalidCodeGenConfigurationException : Exception
     public string? PropertyKey { get; }
     public string? PropertyValue { get; }
 
-
     public InvalidCodeGenConfigurationException(string message) : base(message) { }
 
     public InvalidCodeGenConfigurationException(string message, string key, string value) : this(message)
     {
         PropertyKey = key;
         PropertyValue = value;
+    }
+
+    public override string ToString()
+    {
+        if (PropertyKey != null)
+            return $"Invalid Unithereum CodeGen config: {PropertyKey} ({PropertyValue}). {Message}\n" + base.ToString();
+
+        return base.ToString();
     }
 }
 
