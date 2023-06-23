@@ -65,6 +65,15 @@ namespace Unithereum.CodeGen
                 );
             }
 
+            if (outputDir != null && Path.IsPathFullyQualified(outputDir))
+            {
+                throw new InvalidCodeGenConfigurationException(
+                    "Using absolute path is not supported. Use relative path to Unity `Asset/` directory instead.",
+                    key: nameof(outputDir),
+                    value: outputDir
+                );
+            }
+
             DotnetPath = dotnetPath ?? GetDotnetPath() ??
                 throw new InvalidCodeGenConfigurationException(
                     "`dotnet` executable not found in PATH, Nethereum code generation will not work.");
