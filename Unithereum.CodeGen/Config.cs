@@ -36,11 +36,24 @@ namespace Unithereum.CodeGen
         /// </summary>
         public string OutputDir { get; }
 
+        /// <summary>
+        /// Relative path to Unity project directory where to find `.abi` file inputs.
+        /// <para>Default: Assets</para>
+        /// <para>
+        /// WARNING: Where given path is not inside `Assets/` directory,
+        /// automatic file change detection and generation won't work.
+        /// You may need to manually trigger `Unithereum > Regenerate All...` menu.
+        /// Use with caution.
+        /// </para>
+        /// </summary>
+        public string ContractsDir { get; }
+
         [JsonConstructor]
         public Config(
             [Optional] string? dotnetPath,
             [Optional] string? namespacePrefix,
-            [Optional] string? outputDir
+            [Optional] string? outputDir,
+            [Optional] string? contractsDir
         )
         {
             const string defaultName = "ContractServices";
@@ -73,6 +86,16 @@ namespace Unithereum.CodeGen
                 );
             }
 
+            if (contractsDir != null && Path.IsPathFullyQualified(contractsDir))
+            {
+                throw new InvalidCodeGenConfigurationException(
+                    message: "Using absolute path is not supported. " +
+                             "Use relative path to Unity project directory instead.",
+                    key: nameof(contractsDir),
+                    value: contractsDir
+                );
+            }
+
             DotnetPath =
                 dotnetPath
                 ?? GetDotnetPath()
@@ -82,6 +105,10 @@ namespace Unithereum.CodeGen
                 );
             NamespacePrefix = namespacePrefix ?? GetDefaultNamespacePrefix() + '.' + defaultName;
             OutputDir = outputDir ?? defaultName;
+            ContractsDir = Path.Combine(
+                Path.GetDirectoryName(Application.dataPath)!,
+                contractsDir ?? "Assets"
+            );
         }
 
         public override string ToString() => JsonConvert.SerializeObject(this);

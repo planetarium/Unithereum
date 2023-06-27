@@ -73,16 +73,23 @@ the `ProductName` will be sanitized to qualify as a [C# identifier name].
 
 ### Configuration
 You may override the default configuration with a `codegen.config.json` file in the Unity project root.
-Available options are `dotnetPath`, `nsPrefix`, and `outputDir`.
+Available options are `dotnetPath`, `nsPrefix`, `outputDir`, and `contractsDir`.
+
 Ensure that `nsPrefix` conforms to the [C# identifier name] constraints.
-Also, note that the `outputDir` is relative to the `Assets/` directory of the Unity project..
+Also, note that the `outputDir` is relative to the `Assets/` directory of the Unity project.
+
+Set `contractsDir` if you want to place .abi files in specific directory or outside `Assets/`.
+It consumes relative path to Unity project root directory.
+However, automatic file detection and generation won't work if you put .abi files outside `Assets/` dir.
+You may need to manually trigger `Unithereum > Regenerate All...` menu. Use with caution.
 
 #### Example
 ```json
 {
   "dotnetPath": "/usr/local/bin/dotnet",
   "nsPrefix": "Test.Contracts",
-  "outputDir": "generated"
+  "outputDir": "generated",
+  "contractsDir": "contracts"
 }
 ```
 

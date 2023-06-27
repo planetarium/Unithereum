@@ -38,9 +38,9 @@ namespace Unithereum.CodeGen
 
             if (!EditorUtility.DisplayDialog(
                     "Regenerate Code For All Contracts",
-                    "This will search for all .abi and .bin files under the Unity Project directory, " +
+                    $"This will search for all .abi and .bin files under `{config.ContractsDir}`, " +
                     "import, and regenerate code for the contracts.\n\nTHIS WILL REMOVE ALL CONTENTS OF THE " +
-                    $"{codeGenPath}/ DIRECTORY!\n\nProceed?",
+                    $"`{codeGenPath}` DIRECTORY!\n\nProceed?",
                     "Regenerate",
                     "Cancel"
                 )
@@ -84,8 +84,13 @@ namespace Unithereum.CodeGen
 
         private static void GenerateAll()
         {
-            foreach (var path in Directory.GetFiles(Path.GetDirectoryName(Application.dataPath)!, "*.abi",
-                         SearchOption.AllDirectories))
+            var config = GetConfig();
+            if (config is null) return;
+
+            foreach (var path in Directory.GetFiles(
+                         path: config.ContractsDir,
+                         searchPattern: "*.abi",
+                         searchOption: SearchOption.AllDirectories))
                 FindAbiBinPairAndGenerate(path);
         }
 
