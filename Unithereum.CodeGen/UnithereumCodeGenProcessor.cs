@@ -8,6 +8,10 @@ using Debug = UnityEngine.Debug;
 
 namespace Unithereum.CodeGen
 {
+    /// <summary>
+    /// Automatically generates C# Contract Service classes from .abi files in Unity Asset directory.
+    /// To configure this class's behavior, refer <see cref="Config"/> and README to create codegen.config.json.
+    /// </summary>
     public class UnithereumCodeGenProcessor : AssetPostprocessor
     {
         public override int GetPostprocessOrder() => 0;

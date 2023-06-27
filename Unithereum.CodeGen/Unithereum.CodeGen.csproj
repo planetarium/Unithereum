@@ -8,16 +8,16 @@
   </PropertyGroup>
 
   <ItemGroup>
-  <Reference Include="UnityEditor">
-    <Private>False</Private>
-    <HintPath Condition="$([MSBuild]::IsOSPlatform('OSX'))">\Applications\Unity\Hub\Editor\$(UnityVersion)\Unity.app\Contents\Managed\UnityEditor.dll</HintPath>
-    <HintPath Condition="$([MSBuild]::IsOSPlatform('Windows'))">C:\Program Files\Unity\Hub\Editor\$(UnityVersion)\Editor\Data\Managed\UnityEditor.dll</HintPath>
-  </Reference>
-  <Reference Include="UnityEngine">
-    <Private>False</Private>
-    <HintPath Condition="$([MSBuild]::IsOSPlatform('OSX'))">\Applications\Unity\Hub\Editor\$(UnityVersion)\Unity.app\Contents\Managed\UnityEngine.dll</HintPath>
-    <HintPath Condition="$([MSBuild]::IsOSPlatform('Windows'))">C:\Program Files\Unity\Hub\Editor\$(UnityVersion)\Editor\Data\Managed\UnityEngine.dll</HintPath>
-  </Reference>
+    <Reference Include="UnityEditor">
+      <Private>False</Private>
+      <HintPath Condition="$([MSBuild]::IsOSPlatform('OSX'))">\Applications\Unity\Hub\Editor\$(UnityVersion)\Unity.app\Contents\Managed\UnityEditor.dll</HintPath>
+      <HintPath Condition="$([MSBuild]::IsOSPlatform('Windows'))">C:\Program Files\Unity\Hub\Editor\$(UnityVersion)\Editor\Data\Managed\UnityEditor.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine">
+      <Private>False</Private>
+      <HintPath Condition="$([MSBuild]::IsOSPlatform('OSX'))">\Applications\Unity\Hub\Editor\$(UnityVersion)\Unity.app\Contents\Managed\UnityEngine.dll</HintPath>
+      <HintPath Condition="$([MSBuild]::IsOSPlatform('Windows'))">C:\Program Files\Unity\Hub\Editor\$(UnityVersion)\Editor\Data\Managed\UnityEngine.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
   <ItemGroup>
@@ -27,7 +27,7 @@
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.2"/>
   </ItemGroup>
-  
+
   <Target Name="CopyResources" AfterTargets="AfterBuild">
     <Copy SourceFiles="@(ResourceFiles)" DestinationFolder="$(OutputPath)\%(RecursiveDir)" />
   </Target>
