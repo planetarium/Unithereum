@@ -13,7 +13,7 @@ using Debug = UnityEngine.Debug;
 namespace Unithereum.CodeGen
 {
     /// <summary>
-    /// Config class of <see cref="Unithereum.CodeGen" />.
+    /// Config class of <see cref="CodeGen" />.
     /// See README to find an example codegen.config.json file.
     /// For actual codegen process, refer <see cref="UnithereumCodeGenProcessor"/>.
     /// </summary>
@@ -79,8 +79,8 @@ namespace Unithereum.CodeGen
             if (outputDir != null && Path.IsPathFullyQualified(outputDir))
             {
                 throw new InvalidCodeGenConfigurationException(
-                    message: "Using absolute path is not supported. " +
-                             "Use relative path to Unity `Asset/` directory instead.",
+                    message: "Using absolute path is not supported. "
+                        + "Use relative path to Unity `Asset/` directory instead.",
                     key: nameof(outputDir),
                     value: outputDir
                 );
@@ -89,23 +89,24 @@ namespace Unithereum.CodeGen
             if (contractsDir != null && Path.IsPathFullyQualified(contractsDir))
             {
                 throw new InvalidCodeGenConfigurationException(
-                    message: "Using absolute path is not supported. " +
-                             "Use relative path to Unity project directory instead.",
+                    message: "Using absolute path is not supported. "
+                        + "Use relative path to Unity project directory instead.",
                     key: nameof(contractsDir),
                     value: contractsDir
                 );
             }
 
-            DotnetPath =
+            this.DotnetPath =
                 dotnetPath
                 ?? GetDotnetPath()
                 ?? throw new InvalidCodeGenConfigurationException(
-                    message: "`dotnet` executable not found in PATH, " +
-                             "Nethereum code generation would not work."
+                    message: "`dotnet` executable not found in PATH, "
+                        + "Nethereum code generation would not work."
                 );
-            NamespacePrefix = namespacePrefix ?? GetDefaultNamespacePrefix() + '.' + defaultName;
-            OutputDir = outputDir ?? defaultName;
-            ContractsDir = Path.Combine(
+            this.NamespacePrefix =
+                namespacePrefix ?? GetDefaultNamespacePrefix() + '.' + defaultName;
+            this.OutputDir = outputDir ?? defaultName;
+            this.ContractsDir = Path.Combine(
                 Path.GetDirectoryName(Application.dataPath)!,
                 contractsDir ?? "Assets"
             );
@@ -125,16 +126,20 @@ namespace Unithereum.CodeGen
         private static Config ReadFromJsonFile(string configPath)
         {
             var json = File.ReadAllText(configPath);
-            var config = JsonConvert.DeserializeObject<Config>(json, new ConfigDeserializer());
-            if (config is null)
-                throw new InvalidOperationException($"Failed to create {nameof(Config)} object.");
+            var config =
+                JsonConvert.DeserializeObject<Config>(json, new ConfigDeserializer())
+                ?? throw new InvalidOperationException(
+                    $"Failed to create {nameof(Config)} object."
+                );
             return config;
         }
 
         private static string? GetDotnetPath()
         {
-            if (File.Exists("dotnet")) return Path.GetFullPath("dotnet");
-            if (File.Exists("dotnet.exe")) return Path.GetFullPath("dotnet.exe");
+            if (File.Exists("dotnet"))
+                return Path.GetFullPath("dotnet");
+            if (File.Exists("dotnet.exe"))
+                return Path.GetFullPath("dotnet.exe");
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
@@ -177,8 +182,8 @@ namespace Unithereum.CodeGen
                     {
                         FileName = "dscl",
                         Arguments =
-                            ". -read " +
-                            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
+                            ". -read "
+                            + Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
                             + " UserShell",
                         RedirectStandardOutput = true,
                         UseShellExecute = false,
@@ -191,11 +196,14 @@ namespace Unithereum.CodeGen
                 process.WaitForExit();
                 const string dsclPrefix = "UserShell:";
                 if (!output.StartsWith(dsclPrefix))
+                {
                     throw new InvalidOperationException(
-                        message: "Could not get the default shell of the current user needed to" +
-                                 " find the dotnet executable required for Nethereum code" +
-                                 " generation."
+                        message: "Could not get the default shell of the current user needed to"
+                            + " find the dotnet executable required for Nethereum code"
+                            + " generation."
                     );
+                }
+
                 defaultShell = output[dsclPrefix.Length..].Trim();
             }
             else
@@ -209,26 +217,26 @@ namespace Unithereum.CodeGen
                 catch (InvalidOperationException)
                 {
                     throw new InvalidOperationException(
-                        message: "Could not find the entry for the current user in /etc/passwd" +
-                                 " needed to find the dotnet executable required for Nethereum" +
-                                 " code generation."
+                        message: "Could not find the entry for the current user in /etc/passwd"
+                            + " needed to find the dotnet executable required for Nethereum"
+                            + " code generation."
                     );
                 }
                 catch (IndexOutOfRangeException)
                 {
                     throw new InvalidOperationException(
-                        message: "Could not get the default shell of the current user needed to" +
-                                 " find the dotnet executable required for Nethereum code" +
-                                 " generation in /etc/passwd."
+                        message: "Could not get the default shell of the current user needed to"
+                            + " find the dotnet executable required for Nethereum code"
+                            + " generation in /etc/passwd."
                     );
                 }
 
                 if (defaultShell == "")
                 {
                     throw new InvalidOperationException(
-                        message: "The default shell of the current user needed to find the" +
-                                 " dotnet executable required for Nethereum code generation is" +
-                                 " empty in /etc/passwd."
+                        message: "The default shell of the current user needed to find the"
+                            + " dotnet executable required for Nethereum code generation is"
+                            + " empty in /etc/passwd."
                     );
                 }
             }
@@ -236,6 +244,7 @@ namespace Unithereum.CodeGen
             return defaultShell;
         }
 
+        // csharpier-ignore
         private static readonly HashSet<string> CsharpKeywords = new HashSet<string>
         {
             "abstract", "as", "base", "bool", "break", "byte", "case", "catch", "char", "checked",
@@ -289,8 +298,11 @@ namespace Unithereum.CodeGen
                 && firstLetterCat != UnicodeCategory.TitlecaseLetter
                 && firstLetterCat != UnicodeCategory.ModifierLetter
                 && firstLetterCat != UnicodeCategory.OtherLetter
-                && firstLetterCat != UnicodeCategory.LetterNumber)
+                && firstLetterCat != UnicodeCategory.LetterNumber
+            )
+            {
                 result = "_" + result;
+            }
 
             result = string.Join(
                 ".",
@@ -330,16 +342,17 @@ internal class InvalidCodeGenConfigurationException : Exception
     public InvalidCodeGenConfigurationException(string message, string key, string value)
         : this(message)
     {
-        PropertyKey = key;
-        PropertyValue = value;
+        this.PropertyKey = key;
+        this.PropertyValue = value;
     }
 
     public override string ToString()
     {
-        if (PropertyKey != null)
-            return
-                $"Invalid Unithereum CodeGen config: {PropertyKey} ({PropertyValue}). {Message}\n"
+        if (this.PropertyKey != null)
+        {
+            return $"Invalid Unithereum CodeGen config: {this.PropertyKey} ({this.PropertyValue}). {this.Message}\n"
                 + base.ToString();
+        }
 
         return base.ToString();
     }

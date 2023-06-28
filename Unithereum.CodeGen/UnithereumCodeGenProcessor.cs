@@ -21,7 +21,10 @@ namespace Unithereum.CodeGen
         /// </summary>
         public void OnPreprocessAsset()
         {
-            var changedPath = Path.Combine(Path.GetDirectoryName(Application.dataPath)!, assetPath);
+            var changedPath = Path.Combine(
+                Path.GetDirectoryName(Application.dataPath)!,
+                this.assetPath
+            );
             FindAbiBinPairAndGenerate(changedPath);
         }
 
@@ -32,15 +35,17 @@ namespace Unithereum.CodeGen
         public static void RegenerateAllMenu()
         {
             var config = GetConfig();
-            if (config is null) return;
+            if (config is null)
+                return;
 
             var codeGenPath = Path.Combine(Application.dataPath, config.OutputDir);
 
-            if (!EditorUtility.DisplayDialog(
+            if (
+                !EditorUtility.DisplayDialog(
                     "Regenerate Code For All Contracts",
-                    $"This will search for all .abi and .bin files under `{config.ContractsDir}`, " +
-                    "import, and regenerate code for the contracts.\n\nTHIS WILL REMOVE ALL CONTENTS OF THE " +
-                    $"`{codeGenPath}` DIRECTORY!\n\nProceed?",
+                    $"This will search for all .abi and .bin files under `{config.ContractsDir}`, "
+                        + "import, and regenerate code for the contracts.\n\nTHIS WILL REMOVE ALL CONTENTS OF THE "
+                        + $"`{codeGenPath}` DIRECTORY!\n\nProceed?",
                     "Regenerate",
                     "Cancel"
                 )
@@ -49,7 +54,8 @@ namespace Unithereum.CodeGen
                 return;
             }
 
-            if (Directory.Exists(codeGenPath)) Directory.Delete(codeGenPath, true);
+            if (Directory.Exists(codeGenPath))
+                Directory.Delete(codeGenPath, true);
             GenerateAll();
 
             EditorUtility.DisplayDialog(
@@ -60,10 +66,7 @@ namespace Unithereum.CodeGen
         }
 
         [DidReloadScripts]
-        public static void OnScriptsReloaded()
-        {
-            GetConfig();
-        }
+        public static void OnScriptsReloaded() => GetConfig();
 
         private static Config? GetConfig()
         {
@@ -85,13 +88,19 @@ namespace Unithereum.CodeGen
         private static void GenerateAll()
         {
             var config = GetConfig();
-            if (config is null) return;
+            if (config is null)
+                return;
 
-            foreach (var path in Directory.GetFiles(
-                         path: config.ContractsDir,
-                         searchPattern: "*.abi",
-                         searchOption: SearchOption.AllDirectories))
+            foreach (
+                var path in Directory.GetFiles(
+                    path: config.ContractsDir,
+                    searchPattern: "*.abi",
+                    searchOption: SearchOption.AllDirectories
+                )
+            )
+            {
                 FindAbiBinPairAndGenerate(path);
+            }
         }
 
         private static void FindAbiBinPairAndGenerate(string path)
@@ -104,14 +113,16 @@ namespace Unithereum.CodeGen
             else if (path.EndsWith(".bin", StringComparison.OrdinalIgnoreCase))
             {
                 var abiPath = Path.ChangeExtension(path, ".abi");
-                if (File.Exists(abiPath)) Generate(abiPath, path);
+                if (File.Exists(abiPath))
+                    Generate(abiPath, path);
             }
         }
 
         private static void Generate(string abiPath, string? binPath)
         {
             var config = GetConfig();
-            if (config is null) return;
+            if (config is null)
+                return;
 
             var dotnet = config.DotnetPath;
 
@@ -187,12 +198,16 @@ namespace Unithereum.CodeGen
             codegenProcess.WaitForExit();
 
             if (codegenProcess.ExitCode != 0)
+            {
                 throw new InvalidOperationException(
-                    "Failed to generate Nethereum contract service code: " + error);
+                    "Failed to generate Nethereum contract service code: " + error
+                );
+            }
 
             AssetDatabase.ImportAsset(
                 Path.Combine(Path.GetFileName(Application.dataPath), config.OutputDir),
-                ImportAssetOptions.ImportRecursive);
+                ImportAssetOptions.ImportRecursive
+            );
         }
     }
 }
