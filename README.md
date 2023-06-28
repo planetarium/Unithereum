@@ -78,3 +78,25 @@ To build this project, you must have the Unity Editor 2021.3.19f installed.
 Please make sure that Unity .meta files are generated before updating the
 built package at `Assets/Plugins/Unithereum` (e.g. Open Unity project at
 `Unity` with the Unity Editor and reimport new assets).
+
+Contribution
+------------
+
+### Setup `pre-commit` hook
+
+We use [dotnet format] and [csharpier] to keep code formatted consistently.
+Also, we provide [pre-commit] config to ensure sources are formatted before
+each commits.
+If you are interested in contributing this project, we highly recommend to
+setup `pre-commit` git hook using provided `.pre-commit-config.yaml`.
+
+You can install [pre-commit] from `pip`, `brew`, or `conda` package managers.
+Refer https://pre-commit.com/#install to detailed installation steps.
+
+After that, run `pre-commit install` to set up git hook at this repository.
+Now the git hook will run each commits, and your changes will be formatted
+automatically.
+
+[dotnet format]: https://learn.microsoft.com/en-us/dotnet/core/tools/dotnet-format
+[csharpier]: https://csharpier.com/
+[pre-commit]: https://pre-commit.com/
