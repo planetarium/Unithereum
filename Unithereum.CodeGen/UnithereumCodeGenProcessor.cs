@@ -29,14 +29,21 @@ namespace Unithereum.CodeGen
         }
 
         /// <summary>
-        ///     Search for all .abi and .bin files in the Asset/ directory and force import them.
+        /// Search for all .abi and .bin files in the Asset/ directory and force import them.
         /// </summary>
         [MenuItem("Unithereum/Regenerate All...")]
         public static void RegenerateAllMenu()
         {
-            var config = GetConfig();
-            if (config is null)
+            Config config;
+            try
+            {
+                config = Config.GetConfig();
+            }
+            catch (InvalidCodeGenConfigurationException e)
+            {
+                EditorUtility.DisplayDialog("Generation Unavailable", e.ToString(), "Confirm");
                 return;
+            }
 
             var codeGenPath = Path.Combine(Application.dataPath, config.OutputDir);
 
