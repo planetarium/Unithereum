@@ -45,9 +45,7 @@ namespace Unithereum.CodeGen
             {
                 var abiPath = Path.ChangeExtension(changedPath, ".abi");
                 if (File.Exists(abiPath))
-                {
                     Generate(abiPath, changedPath);
-                }
             }
         }
 
@@ -76,9 +74,7 @@ namespace Unithereum.CodeGen
 
             var codeGenPath = Path.Combine(Application.dataPath, "ContractServices");
             if (Directory.Exists(codeGenPath))
-            {
                 Directory.Delete(codeGenPath, recursive: true);
-            }
 
             foreach (
                 var path in Directory.GetFiles(
@@ -116,19 +112,14 @@ namespace Unithereum.CodeGen
         public static void OnScriptsReloaded()
         {
             if (!(GetDotNetPath() is null))
-            {
                 return;
-            }
-
             Debug.LogWarning("dotnet not found in PATH, Nethereum code generation will not work.");
         }
 
         private static void Generate(string abiPath, string? binPath)
         {
             if (!(GetDotNetPath() is { } dotnet))
-            {
                 return;
-            }
 
             var assemblyDir = Path.GetDirectoryName(
                 new Uri(typeof(UnithereumCodeGenProcessor).Assembly.CodeBase).LocalPath
@@ -161,19 +152,11 @@ namespace Unithereum.CodeGen
 
             // Suppress warnings in generated code
             if (!Directory.Exists(codegenPath))
-            {
                 Directory.CreateDirectory(codegenPath);
-            }
-
             if (!File.Exists(assemblyDefinition))
-            {
                 File.WriteAllText(assemblyDefinition, $@"{{""name"": ""{codegenNamespace}""}}");
-            }
-
             if (!File.Exists(cscDirectives))
-            {
                 File.WriteAllText(cscDirectives, "-warn:0");
-            }
 
             using var codegenProcess = new Process
             {
@@ -292,14 +275,9 @@ namespace Unithereum.CodeGen
         private static string? GetDotNetPath()
         {
             if (File.Exists("dotnet"))
-            {
                 return Path.GetFullPath("dotnet");
-            }
-
             if (File.Exists("dotnet.exe"))
-            {
                 return Path.GetFullPath("dotnet.exe");
-            }
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {

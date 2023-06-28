@@ -23,6 +23,6 @@ repos:
       - id: dotnet-format
         name: dotnet format
         language: system
-        entry: dotnet format -v diag --verify-no-changes --include
+        entry: dotnet format --verify-no-changes --include
         types:
           - c#
