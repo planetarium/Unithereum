@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
@@ -15,6 +15,7 @@ namespace Unithereum.CodeGen
     {
         public override int GetPostprocessOrder() => 0;
 
+        // csharpier-ignore
         private static readonly HashSet<string> CsharpKeywords = new HashSet<string>
         {
             "abstract", "as", "base", "bool", "break", "byte", "case", "catch", "char", "checked", "class", "const",
@@ -31,7 +32,10 @@ namespace Unithereum.CodeGen
         /// </summary>
         public void OnPreprocessAsset()
         {
-            var changedPath = Path.Combine(Path.GetDirectoryName(Application.dataPath)!, assetPath);
+            var changedPath = Path.Combine(
+                Path.GetDirectoryName(Application.dataPath)!,
+                this.assetPath
+            );
             if (changedPath.EndsWith(".abi", StringComparison.OrdinalIgnoreCase))
             {
                 var binPath = Path.ChangeExtension(changedPath, ".bin");
@@ -40,7 +44,10 @@ namespace Unithereum.CodeGen
             else if (changedPath.EndsWith(".bin", StringComparison.OrdinalIgnoreCase))
             {
                 var abiPath = Path.ChangeExtension(changedPath, ".abi");
-                if (File.Exists(abiPath)) Generate(abiPath, changedPath);
+                if (File.Exists(abiPath))
+                {
+                    Generate(abiPath, changedPath);
+                }
             }
         }
 
@@ -51,50 +58,81 @@ namespace Unithereum.CodeGen
         /// this function will regenerate code for all .abi files without explicitly calling <see cref="Generate"/>.
         /// </remarks>
         [MenuItem("Unithereum/Regenerate All...")]
-        private static void RegenerateAllMenu()
+        public static void RegenerateAllMenu()
         {
-            if (!EditorUtility.DisplayDialog(
+            if (
+                !EditorUtility.DisplayDialog(
                     "Regenerate Code For All Contracts",
                     "This will search for all .abi and .bin files under the Asset/ directory, import, and"
-                    + " regenerate code for the contracts.\n\nTHIS WILL REMOVE ALL CONTENTS OF THE"
-                    + " Assets/ContractServices/ DIRECTORY!\n\nProceed?",
+                        + " regenerate code for the contracts.\n\nTHIS WILL REMOVE ALL CONTENTS OF THE"
+                        + " Assets/ContractServices/ DIRECTORY!\n\nProceed?",
                     "Regenerate",
-                    "Cancel")) return;
+                    "Cancel"
+                )
+            )
+            {
+                return;
+            }
 
             var codeGenPath = Path.Combine(Application.dataPath, "ContractServices");
-            if (Directory.Exists(codeGenPath)) Directory.Delete(codeGenPath, recursive: true);
+            if (Directory.Exists(codeGenPath))
+            {
+                Directory.Delete(codeGenPath, recursive: true);
+            }
 
-            foreach (var path in Directory.GetFiles(Application.dataPath, "*.abi", SearchOption.AllDirectories))
+            foreach (
+                var path in Directory.GetFiles(
+                    Application.dataPath,
+                    "*.abi",
+                    SearchOption.AllDirectories
+                )
+            )
             {
                 var binPath = Path.ChangeExtension(path, ".bin");
                 if (File.Exists(binPath))
+                {
                     AssetDatabase.ImportAsset(
-                        Path.Combine(binPath.Substring(Path.GetDirectoryName(Application.dataPath)!.Length + 1)),
-                        ImportAssetOptions.ForceUpdate);
+                        Path.Combine(
+                            binPath[(Path.GetDirectoryName(Application.dataPath)!.Length + 1)..]
+                        ),
+                        ImportAssetOptions.ForceUpdate
+                    );
+                }
+
                 AssetDatabase.ImportAsset(
-                    Path.Combine(path.Substring(Path.GetDirectoryName(Application.dataPath)!.Length + 1)),
-                    ImportAssetOptions.ForceUpdate);
+                    Path.Combine(path[(Path.GetDirectoryName(Application.dataPath)!.Length + 1)..]),
+                    ImportAssetOptions.ForceUpdate
+                );
             }
 
             EditorUtility.DisplayDialog(
                 "Regeneration Complete",
                 "Code for all available contracts has been regenerated.",
-                "OK");
+                "OK"
+            );
         }
 
         [UnityEditor.Callbacks.DidReloadScripts]
-        private static void OnScriptsReloaded()
+        public static void OnScriptsReloaded()
         {
-            if (!(GetDotNetPath() is null)) return;
+            if (!(GetDotNetPath() is null))
+            {
+                return;
+            }
+
             Debug.LogWarning("dotnet not found in PATH, Nethereum code generation will not work.");
         }
 
         private static void Generate(string abiPath, string? binPath)
         {
-            if (!(GetDotNetPath() is { } dotnet)) return;
-            
-            var assemblyDir =
-                Path.GetDirectoryName(new Uri(typeof(UnithereumCodeGenProcessor).Assembly.CodeBase).LocalPath);
+            if (!(GetDotNetPath() is { } dotnet))
+            {
+                return;
+            }
+
+            var assemblyDir = Path.GetDirectoryName(
+                new Uri(typeof(UnithereumCodeGenProcessor).Assembly.CodeBase).LocalPath
+            );
             using var restoreProcess = new Process
             {
                 StartInfo =
@@ -120,13 +158,22 @@ namespace Unithereum.CodeGen
             var codegenNamespace = GetCodeGenNamespace();
             var assemblyDefinition = Path.Combine(codegenPath, codegenNamespace + ".asmdef");
             var cscDirectives = Path.Combine(codegenPath, "csc.rsp");
-            
+
             // Suppress warnings in generated code
-            if (!Directory.Exists(codegenPath)) Directory.CreateDirectory(codegenPath);
+            if (!Directory.Exists(codegenPath))
+            {
+                Directory.CreateDirectory(codegenPath);
+            }
+
             if (!File.Exists(assemblyDefinition))
+            {
                 File.WriteAllText(assemblyDefinition, $@"{{""name"": ""{codegenNamespace}""}}");
+            }
+
             if (!File.Exists(cscDirectives))
+            {
                 File.WriteAllText(cscDirectives, "-warn:0");
+            }
 
             using var codegenProcess = new Process
             {
@@ -164,75 +211,105 @@ namespace Unithereum.CodeGen
             codegenProcess.Start();
             error = codegenProcess.StandardError.ReadToEnd();
             codegenProcess.WaitForExit();
-            
+
             if (codegenProcess.ExitCode != 0)
             {
                 throw new InvalidOperationException(
-                    "Failed to generate Nethereum contract service code: " + error);
+                    "Failed to generate Nethereum contract service code: " + error
+                );
             }
-            
+
             AssetDatabase.ImportAsset(
                 Path.Combine(Path.GetFileName(Application.dataPath), "ContractServices"),
-                ImportAssetOptions.ImportRecursive);
+                ImportAssetOptions.ImportRecursive
+            );
         }
 
         private static string GetCodeGenNamespace()
         {
-            var productName =
-                SanitizeLeadingDots(
-                    SanitizeTrailingDots(
-                        string.Join("",
-                            Application.productName.Select(c =>
-                            {
-                                var cat = CharUnicodeInfo.GetUnicodeCategory(c);
-                                return cat == UnicodeCategory.UppercaseLetter ||
-                                       cat == UnicodeCategory.LowercaseLetter ||
-                                       cat == UnicodeCategory.TitlecaseLetter ||
-                                       cat == UnicodeCategory.ModifierLetter ||
-                                       cat == UnicodeCategory.OtherLetter ||
-                                       cat == UnicodeCategory.SpacingCombiningMark ||
-                                       cat == UnicodeCategory.DecimalDigitNumber ||
-                                       cat == UnicodeCategory.LetterNumber ||
-                                       cat == UnicodeCategory.ConnectorPunctuation ||
-                                       c == '.'
-                                    ? c.ToString()
-                                    : "_";
-                            }))));
+            var productName = SanitizeLeadingDots(
+                SanitizeTrailingDots(
+                    string.Join(
+                        "",
+                        Application.productName.Select(c =>
+                        {
+                            var cat = CharUnicodeInfo.GetUnicodeCategory(c);
+                            return
+                                cat == UnicodeCategory.UppercaseLetter
+                                || cat == UnicodeCategory.LowercaseLetter
+                                || cat == UnicodeCategory.TitlecaseLetter
+                                || cat == UnicodeCategory.ModifierLetter
+                                || cat == UnicodeCategory.OtherLetter
+                                || cat == UnicodeCategory.SpacingCombiningMark
+                                || cat == UnicodeCategory.DecimalDigitNumber
+                                || cat == UnicodeCategory.LetterNumber
+                                || cat == UnicodeCategory.ConnectorPunctuation
+                                || c == '.'
+                                ? c.ToString()
+                                : "_";
+                        })
+                    )
+                )
+            );
 
             var firstLetterCat = CharUnicodeInfo.GetUnicodeCategory(productName[0]);
             if (
-                firstLetterCat != UnicodeCategory.UppercaseLetter &&
-                firstLetterCat != UnicodeCategory.LowercaseLetter &&
-                firstLetterCat != UnicodeCategory.TitlecaseLetter &&
-                firstLetterCat != UnicodeCategory.ModifierLetter &&
-                firstLetterCat != UnicodeCategory.OtherLetter &&
-                firstLetterCat != UnicodeCategory.LetterNumber)
+                firstLetterCat != UnicodeCategory.UppercaseLetter
+                && firstLetterCat != UnicodeCategory.LowercaseLetter
+                && firstLetterCat != UnicodeCategory.TitlecaseLetter
+                && firstLetterCat != UnicodeCategory.ModifierLetter
+                && firstLetterCat != UnicodeCategory.OtherLetter
+                && firstLetterCat != UnicodeCategory.LetterNumber
+            )
+            {
                 productName = "_" + productName;
+            }
 
             productName = string.Join(
                 ".",
                 productName
                     .Split(".")
-                    .Select(part => CsharpKeywords.Contains(part) ? "@" + part : part));
-            
+                    .Select(part => CsharpKeywords.Contains(part) ? "@" + part : part)
+            );
+
             return productName + ".ContractServices";
         }
 
-        private static string SanitizeLeadingDots(string str)
-            => str != string.Empty ? str[0] == '.' ? "_" + SanitizeLeadingDots(str[1..]) : str : string.Empty;
-        
-        private static string SanitizeTrailingDots(string str)
-            => str != string.Empty ? str[^1] == '.' ? SanitizeTrailingDots(str[..^1]) + "_" : str : string.Empty;
+        private static string SanitizeLeadingDots(string str) =>
+            str != string.Empty
+                ? str[0] == '.'
+                    ? "_" + SanitizeLeadingDots(str[1..])
+                    : str
+                : string.Empty;
+
+        private static string SanitizeTrailingDots(string str) =>
+            str != string.Empty
+                ? str[^1] == '.'
+                    ? SanitizeTrailingDots(str[..^1]) + "_"
+                    : str
+                : string.Empty;
 
         private static string? GetDotNetPath()
         {
-            if (File.Exists("dotnet")) return Path.GetFullPath("dotnet");
-            if (File.Exists("dotnet.exe")) return Path.GetFullPath("dotnet.exe");
-            
+            if (File.Exists("dotnet"))
+            {
+                return Path.GetFullPath("dotnet");
+            }
+
+            if (File.Exists("dotnet.exe"))
+            {
+                return Path.GetFullPath("dotnet.exe");
+            }
+
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                return (Environment.GetEnvironmentVariable("PATH")?.Split(Path.PathSeparator) ?? Array.Empty<string>())
+            {
+                return (
+                    Environment.GetEnvironmentVariable("PATH")?.Split(Path.PathSeparator)
+                    ?? Array.Empty<string>()
+                )
                     .Select(path => Path.Combine(path, "dotnet.exe"))
                     .FirstOrDefault(File.Exists);
+            }
 
             using var process = new Process
             {
@@ -263,7 +340,8 @@ namespace Unithereum.CodeGen
                     StartInfo =
                     {
                         FileName = "dscl",
-                        Arguments = $". -read {Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)} UserShell",
+                        Arguments =
+                            $". -read {Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)} UserShell",
                         RedirectStandardOutput = true,
                         UseShellExecute = false,
                         CreateNoWindow = true,
@@ -274,9 +352,14 @@ namespace Unithereum.CodeGen
                 var output = process.StandardOutput.ReadToEnd();
                 process.WaitForExit();
                 const string dsclPrefix = "UserShell:";
-                if (!output.StartsWith(dsclPrefix)) throw new InvalidOperationException(
-                    "Could not get the default shell of the current user needed to find the dotnet executable"
-                    + " required for Nethereum code generation.");
+                if (!output.StartsWith(dsclPrefix))
+                {
+                    throw new InvalidOperationException(
+                        "Could not get the default shell of the current user needed to find the dotnet executable"
+                            + " required for Nethereum code generation."
+                    );
+                }
+
                 defaultShell = output[dsclPrefix.Length..].Trim();
             }
             else
@@ -284,26 +367,30 @@ namespace Unithereum.CodeGen
                 try
                 {
                     defaultShell = File.ReadLines("/etc/passwd")
-                        .First(line => line.StartsWith(Environment.UserName + ":")).Split(':')[6];
+                        .First(line => line.StartsWith(Environment.UserName + ":"))
+                        .Split(':')[6];
                 }
                 catch (InvalidOperationException)
                 {
                     throw new InvalidOperationException(
                         "Could not find the entry for the current user in /etc/passwd needed to find the dotnet"
-                        + " executable required for Nethereum code generation.");
+                            + " executable required for Nethereum code generation."
+                    );
                 }
                 catch (IndexOutOfRangeException)
                 {
                     throw new InvalidOperationException(
                         "Could not get the default shell of the current user needed to find the dotnet executable"
-                        + " required for Nethereum code generation in /etc/passwd.");
+                            + " required for Nethereum code generation in /etc/passwd."
+                    );
                 }
 
                 if (defaultShell == "")
                 {
                     throw new InvalidOperationException(
                         "The default shell of the current user needed to find the dotnet executable required for"
-                        + " Nethereum code generation is empty in /etc/passwd.");
+                            + " Nethereum code generation is empty in /etc/passwd."
+                    );
                 }
             }
 

@@ -1,0 +1,28 @@
+repos:
+  - repo: local
+    hooks:
+      - id: dotnet-tool-restore
+        name: dotnet tool restore
+        entry: dotnet tool restore
+        language: system
+        always_run: true
+        pass_filenames: false
+        stages:
+          - commit
+          - push
+          - post-checkout
+          - post-rewrite
+
+      - id: csharpier
+        name: csharpier
+        entry: dotnet csharpier --check
+        language: system
+        types:
+          - c#
+
+      - id: dotnet-format
+        name: dotnet format
+        language: system
+        entry: dotnet format -v diag --verify-no-changes --include
+        types:
+          - c#
