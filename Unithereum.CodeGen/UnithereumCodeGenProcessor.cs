@@ -39,9 +39,13 @@ namespace Unithereum.CodeGen
             {
                 config = Config.GetConfig();
             }
-            catch (InvalidCodeGenConfigurationException e)
+            catch (InvalidCodeGenConfigurationException ex)
             {
-                EditorUtility.DisplayDialog("Generation Unavailable", e.ToString(), "Confirm");
+                EditorUtility.DisplayDialog(
+                    "Generation Unavailable",
+                    ex.ToString().Split('\n')[0],
+                    "Confirm"
+                );
                 return;
             }
 
@@ -81,12 +85,16 @@ namespace Unithereum.CodeGen
             {
                 return Config.GetConfig();
             }
-            catch (InvalidCodeGenConfigurationException e)
+            catch (InvalidCodeGenConfigurationException ex)
             {
-                if (e.PropertyKey != null)
-                    Debug.LogError(e);
+                if (ex.PropertyKey != null)
+                    Debug.LogError(ex);
                 else
-                    Debug.LogWarning(e);
+                    Debug.LogWarning(ex);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning(ex);
             }
 
             return null;

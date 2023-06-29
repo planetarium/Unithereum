@@ -125,13 +125,35 @@ namespace Unithereum.CodeGen
 
         private static Config ReadFromJsonFile(string configPath)
         {
-            var json = File.ReadAllText(configPath);
-            var config =
-                JsonConvert.DeserializeObject<Config>(json, new ConfigDeserializer())
-                ?? throw new InvalidOperationException(
-                    $"Failed to create {nameof(Config)} object."
+            try
+            {
+                var json = File.ReadAllText(configPath);
+                var config =
+                    JsonConvert.DeserializeObject<Config>(json, new ConfigDeserializer())
+                    ?? throw new InvalidOperationException(
+                        $"Failed to create {nameof(Config)} object."
+                    );
+                return config;
+            }
+            catch (InvalidCodeGenConfigurationException)
+            {
+                throw;
+            }
+            catch (JsonReaderException ex)
+            {
+                throw new InvalidCodeGenConfigurationException(
+                    message: ex.Message,
+                    key: ex.Path,
+                    innerException: ex
                 );
-            return config;
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException(
+                    message: "Unexpected exception occured while reading codegen.config.json",
+                    innerException: ex
+                );
+            }
         }
 
         private static string? GetDotnetPath()
@@ -214,20 +236,22 @@ namespace Unithereum.CodeGen
                         .First(line => line.StartsWith(Environment.UserName + ":"))
                         .Split(':')[6];
                 }
-                catch (InvalidOperationException)
+                catch (InvalidOperationException ex)
                 {
                     throw new InvalidOperationException(
                         message: "Could not find the entry for the current user in /etc/passwd"
                             + " needed to find the dotnet executable required for Nethereum"
-                            + " code generation."
+                            + " code generation.",
+                        innerException: ex
                     );
                 }
-                catch (IndexOutOfRangeException)
+                catch (IndexOutOfRangeException ex)
                 {
                     throw new InvalidOperationException(
                         message: "Could not get the default shell of the current user needed to"
                             + " find the dotnet executable required for Nethereum code"
-                            + " generation in /etc/passwd."
+                            + " generation in /etc/passwd.",
+                        innerException: ex
                     );
                 }
 
@@ -336,11 +360,16 @@ internal class InvalidCodeGenConfigurationException : Exception
     public string? PropertyKey { get; }
     private string? PropertyValue { get; }
 
-    public InvalidCodeGenConfigurationException(string message)
-        : base(message) { }
+    public InvalidCodeGenConfigurationException(string message, [Optional] Exception innerException)
+        : base(message, innerException) { }
 
-    public InvalidCodeGenConfigurationException(string message, string key, string value)
-        : this(message)
+    public InvalidCodeGenConfigurationException(
+        string message,
+        string? key,
+        [Optional] string? value,
+        [Optional] Exception innerException
+    )
+        : base(message, innerException)
     {
         this.PropertyKey = key;
         this.PropertyValue = value;
@@ -348,13 +377,17 @@ internal class InvalidCodeGenConfigurationException : Exception
 
     public override string ToString()
     {
-        if (this.PropertyKey != null)
+        if (this.PropertyKey == null)
+            return base.ToString();
+
+        var msg = $"Invalid Unithereum CodeGen config: {this.PropertyKey}.";
+
+        if (this.PropertyValue != null)
         {
-            return $"Invalid Unithereum CodeGen config: {this.PropertyKey} ({this.PropertyValue}). {this.Message}\n"
-                + base.ToString();
+            msg += $" ({this.PropertyValue})";
         }
 
-        return base.ToString();
+        return msg + $" {this.Message}\n" + base.ToString();
     }
 }
 
