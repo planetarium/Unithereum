@@ -1,31 +1,20 @@
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Globalization;
 using System.IO;
-using System.Linq;
-using System.Runtime.InteropServices;
 using UnityEditor;
+using UnityEditor.Callbacks;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
 
 namespace Unithereum.CodeGen
 {
+    /// <summary>
+    /// Automatically generates C# Contract Service classes from .abi files in Unity Asset directory.
+    /// To configure this class's behavior, refer <see cref="Config"/> and README to create codegen.config.json.
+    /// </summary>
     public class UnithereumCodeGenProcessor : AssetPostprocessor
     {
         public override int GetPostprocessOrder() => 0;
-
-        // csharpier-ignore
-        private static readonly HashSet<string> CsharpKeywords = new HashSet<string>
-        {
-            "abstract", "as", "base", "bool", "break", "byte", "case", "catch", "char", "checked", "class", "const",
-            "continue", "decimal", "default", "delegate", "do", "double", "else", "enum", "event", "explicit", "extern",
-            "false", "finally", "fixed", "float", "for", "foreach", "goto", "if", "implicit", "in", "int", "interface",
-            "internal", "is", "lock", "long", "namespace", "new", "null", "object", "operator", "out", "override",
-            "params", "private", "protected", "public", "readonly", "ref", "return", "sbyte", "sealed", "short",
-            "sizeof", "stackalloc", "static", "string", "struct", "switch", "this", "throw", "true", "try", "typeof",
-            "uint", "ulong", "unchecked", "unsafe", "ushort", "using", "virtual", "void", "volatile", "while"
-        };
 
         /// <summary>
         /// Detect .abi and .bin files on import and generate code.
@@ -36,34 +25,38 @@ namespace Unithereum.CodeGen
                 Path.GetDirectoryName(Application.dataPath)!,
                 this.assetPath
             );
-            if (changedPath.EndsWith(".abi", StringComparison.OrdinalIgnoreCase))
-            {
-                var binPath = Path.ChangeExtension(changedPath, ".bin");
-                Generate(changedPath, File.Exists(binPath) ? binPath : null);
-            }
-            else if (changedPath.EndsWith(".bin", StringComparison.OrdinalIgnoreCase))
-            {
-                var abiPath = Path.ChangeExtension(changedPath, ".abi");
-                if (File.Exists(abiPath))
-                    Generate(abiPath, changedPath);
-            }
+            FindAbiBinPairAndGenerate(changedPath);
         }
 
         /// <summary>
         /// Search for all .abi and .bin files in the Asset/ directory and force import them.
         /// </summary>
-        /// <remarks>As the <see cref="OnPreprocessAsset"/> function will generate code for imported .abi files,
-        /// this function will regenerate code for all .abi files without explicitly calling <see cref="Generate"/>.
-        /// </remarks>
         [MenuItem("Unithereum/Regenerate All...")]
         public static void RegenerateAllMenu()
         {
+            Config config;
+            try
+            {
+                config = Config.GetConfig();
+            }
+            catch (InvalidCodeGenConfigurationException ex)
+            {
+                EditorUtility.DisplayDialog(
+                    "Generation Unavailable",
+                    ex.ToString().Split('\n')[0],
+                    "Confirm"
+                );
+                return;
+            }
+
+            var codeGenPath = Path.Combine(Application.dataPath, config.OutputDir);
+
             if (
                 !EditorUtility.DisplayDialog(
                     "Regenerate Code For All Contracts",
-                    "This will search for all .abi and .bin files under the Asset/ directory, import, and"
-                        + " regenerate code for the contracts.\n\nTHIS WILL REMOVE ALL CONTENTS OF THE"
-                        + " Assets/ContractServices/ DIRECTORY!\n\nProceed?",
+                    $"This will search for all .abi and .bin files under `{config.ContractsDir}`, "
+                        + "import, and regenerate code for the contracts.\n\nTHIS WILL REMOVE ALL CONTENTS OF THE "
+                        + $"`{codeGenPath}` DIRECTORY!\n\nProceed?",
                     "Regenerate",
                     "Cancel"
                 )
@@ -72,34 +65,9 @@ namespace Unithereum.CodeGen
                 return;
             }
 
-            var codeGenPath = Path.Combine(Application.dataPath, "ContractServices");
             if (Directory.Exists(codeGenPath))
-                Directory.Delete(codeGenPath, recursive: true);
-
-            foreach (
-                var path in Directory.GetFiles(
-                    Application.dataPath,
-                    "*.abi",
-                    SearchOption.AllDirectories
-                )
-            )
-            {
-                var binPath = Path.ChangeExtension(path, ".bin");
-                if (File.Exists(binPath))
-                {
-                    AssetDatabase.ImportAsset(
-                        Path.Combine(
-                            binPath[(Path.GetDirectoryName(Application.dataPath)!.Length + 1)..]
-                        ),
-                        ImportAssetOptions.ForceUpdate
-                    );
-                }
-
-                AssetDatabase.ImportAsset(
-                    Path.Combine(path[(Path.GetDirectoryName(Application.dataPath)!.Length + 1)..]),
-                    ImportAssetOptions.ForceUpdate
-                );
-            }
+                Directory.Delete(codeGenPath, true);
+            GenerateAll();
 
             EditorUtility.DisplayDialog(
                 "Regeneration Complete",
@@ -108,18 +76,70 @@ namespace Unithereum.CodeGen
             );
         }
 
-        [UnityEditor.Callbacks.DidReloadScripts]
-        public static void OnScriptsReloaded()
+        [DidReloadScripts]
+        public static void OnScriptsReloaded() => GetConfig();
+
+        private static Config? GetConfig()
         {
-            if (!(GetDotNetPath() is null))
+            try
+            {
+                return Config.GetConfig();
+            }
+            catch (InvalidCodeGenConfigurationException ex)
+            {
+                if (ex.PropertyKey != null)
+                    Debug.LogError(ex);
+                else
+                    Debug.LogWarning(ex);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning(ex);
+            }
+
+            return null;
+        }
+
+        private static void GenerateAll()
+        {
+            var config = GetConfig();
+            if (config is null)
                 return;
-            Debug.LogWarning("dotnet not found in PATH, Nethereum code generation will not work.");
+
+            foreach (
+                var path in Directory.GetFiles(
+                    path: config.ContractsDir,
+                    searchPattern: "*.abi",
+                    searchOption: SearchOption.AllDirectories
+                )
+            )
+            {
+                FindAbiBinPairAndGenerate(path);
+            }
+        }
+
+        private static void FindAbiBinPairAndGenerate(string path)
+        {
+            if (path.EndsWith(".abi", StringComparison.OrdinalIgnoreCase))
+            {
+                var binPath = Path.ChangeExtension(path, ".bin");
+                Generate(path, File.Exists(binPath) ? binPath : null);
+            }
+            else if (path.EndsWith(".bin", StringComparison.OrdinalIgnoreCase))
+            {
+                var abiPath = Path.ChangeExtension(path, ".abi");
+                if (File.Exists(abiPath))
+                    Generate(abiPath, path);
+            }
         }
 
         private static void Generate(string abiPath, string? binPath)
         {
-            if (!(GetDotNetPath() is { } dotnet))
+            var config = GetConfig();
+            if (config is null)
                 return;
+
+            var dotnet = config.DotnetPath;
 
             var assemblyDir = Path.GetDirectoryName(
                 new Uri(typeof(UnithereumCodeGenProcessor).Assembly.CodeBase).LocalPath
@@ -140,13 +160,10 @@ namespace Unithereum.CodeGen
             var error = restoreProcess.StandardError.ReadToEnd();
             restoreProcess.WaitForExit();
             if (restoreProcess.ExitCode != 0)
-            {
                 throw new InvalidOperationException("dotnet tool restore failed: " + error);
-            }
 
-            // TODO: Enable configuration
-            var codegenPath = Path.Combine(Application.dataPath, "ContractServices");
-            var codegenNamespace = GetCodeGenNamespace();
+            var codegenPath = Path.Combine(Application.dataPath, config.OutputDir);
+            var codegenNamespace = config.NamespacePrefix;
             var assemblyDefinition = Path.Combine(codegenPath, codegenNamespace + ".asmdef");
             var cscDirectives = Path.Combine(codegenPath, "csc.rsp");
 
@@ -203,176 +220,9 @@ namespace Unithereum.CodeGen
             }
 
             AssetDatabase.ImportAsset(
-                Path.Combine(Path.GetFileName(Application.dataPath), "ContractServices"),
+                Path.Combine(Path.GetFileName(Application.dataPath), config.OutputDir),
                 ImportAssetOptions.ImportRecursive
             );
-        }
-
-        private static string GetCodeGenNamespace()
-        {
-            var productName = SanitizeLeadingDots(
-                SanitizeTrailingDots(
-                    string.Join(
-                        "",
-                        Application.productName.Select(c =>
-                        {
-                            var cat = CharUnicodeInfo.GetUnicodeCategory(c);
-                            return
-                                cat == UnicodeCategory.UppercaseLetter
-                                || cat == UnicodeCategory.LowercaseLetter
-                                || cat == UnicodeCategory.TitlecaseLetter
-                                || cat == UnicodeCategory.ModifierLetter
-                                || cat == UnicodeCategory.OtherLetter
-                                || cat == UnicodeCategory.SpacingCombiningMark
-                                || cat == UnicodeCategory.DecimalDigitNumber
-                                || cat == UnicodeCategory.LetterNumber
-                                || cat == UnicodeCategory.ConnectorPunctuation
-                                || c == '.'
-                                ? c.ToString()
-                                : "_";
-                        })
-                    )
-                )
-            );
-
-            var firstLetterCat = CharUnicodeInfo.GetUnicodeCategory(productName[0]);
-            if (
-                firstLetterCat != UnicodeCategory.UppercaseLetter
-                && firstLetterCat != UnicodeCategory.LowercaseLetter
-                && firstLetterCat != UnicodeCategory.TitlecaseLetter
-                && firstLetterCat != UnicodeCategory.ModifierLetter
-                && firstLetterCat != UnicodeCategory.OtherLetter
-                && firstLetterCat != UnicodeCategory.LetterNumber
-            )
-            {
-                productName = "_" + productName;
-            }
-
-            productName = string.Join(
-                ".",
-                productName
-                    .Split(".")
-                    .Select(part => CsharpKeywords.Contains(part) ? "@" + part : part)
-            );
-
-            return productName + ".ContractServices";
-        }
-
-        private static string SanitizeLeadingDots(string str) =>
-            str != string.Empty
-                ? str[0] == '.'
-                    ? "_" + SanitizeLeadingDots(str[1..])
-                    : str
-                : string.Empty;
-
-        private static string SanitizeTrailingDots(string str) =>
-            str != string.Empty
-                ? str[^1] == '.'
-                    ? SanitizeTrailingDots(str[..^1]) + "_"
-                    : str
-                : string.Empty;
-
-        private static string? GetDotNetPath()
-        {
-            if (File.Exists("dotnet"))
-                return Path.GetFullPath("dotnet");
-            if (File.Exists("dotnet.exe"))
-                return Path.GetFullPath("dotnet.exe");
-
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-                return (
-                    Environment.GetEnvironmentVariable("PATH")?.Split(Path.PathSeparator)
-                    ?? Array.Empty<string>()
-                )
-                    .Select(path => Path.Combine(path, "dotnet.exe"))
-                    .FirstOrDefault(File.Exists);
-            }
-
-            using var process = new Process
-            {
-                StartInfo =
-                {
-                    FileName = GetDefaultShell(),
-                    Arguments = "--login -i -c 'command -v dotnet'",
-                    RedirectStandardOutput = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true,
-                },
-            };
-
-            process.Start();
-            var dotnet = process.StandardOutput.ReadToEnd().Trim();
-            process.WaitForExit();
-
-            return dotnet != "" ? dotnet : null;
-        }
-
-        private static string GetDefaultShell()
-        {
-            string defaultShell;
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-            {
-                using var process = new Process
-                {
-                    StartInfo =
-                    {
-                        FileName = "dscl",
-                        Arguments =
-                            $". -read {Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)} UserShell",
-                        RedirectStandardOutput = true,
-                        UseShellExecute = false,
-                        CreateNoWindow = true,
-                    },
-                };
-
-                process.Start();
-                var output = process.StandardOutput.ReadToEnd();
-                process.WaitForExit();
-                const string dsclPrefix = "UserShell:";
-                if (!output.StartsWith(dsclPrefix))
-                {
-                    throw new InvalidOperationException(
-                        "Could not get the default shell of the current user needed to find the dotnet executable"
-                            + " required for Nethereum code generation."
-                    );
-                }
-
-                defaultShell = output[dsclPrefix.Length..].Trim();
-            }
-            else
-            {
-                try
-                {
-                    defaultShell = File.ReadLines("/etc/passwd")
-                        .First(line => line.StartsWith(Environment.UserName + ":"))
-                        .Split(':')[6];
-                }
-                catch (InvalidOperationException)
-                {
-                    throw new InvalidOperationException(
-                        "Could not find the entry for the current user in /etc/passwd needed to find the dotnet"
-                            + " executable required for Nethereum code generation."
-                    );
-                }
-                catch (IndexOutOfRangeException)
-                {
-                    throw new InvalidOperationException(
-                        "Could not get the default shell of the current user needed to find the dotnet executable"
-                            + " required for Nethereum code generation in /etc/passwd."
-                    );
-                }
-
-                if (defaultShell == "")
-                {
-                    throw new InvalidOperationException(
-                        "The default shell of the current user needed to find the dotnet executable required for"
-                            + " Nethereum code generation is empty in /etc/passwd."
-                    );
-                }
-            }
-
-            return defaultShell;
         }
     }
 }
