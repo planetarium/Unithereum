@@ -706,7 +706,7 @@ namespace Unithereum.Samples
                     case RpcResponseException when e.Message.Contains("insufficient funds"):
                         panel.InsufficientFundsErrorLabel.style.display = DisplayStyle.Flex;
                         return;
-                    case RpcResponseException when e.Message.Contains("execution reverted"): // polygon edge
+                    case RpcResponseException when e.Message.Contains("execution was reverted"): // polygon edge
                     case SmartContractRevertException:
                         if (
                             e.Message.Contains("amount exceeds balance")
@@ -872,73 +872,89 @@ namespace Unithereum.Samples
             this.waitReceiptPanel.Show();
             try
             {
+                var gasPrice = (await this.web3.Eth.GasPrice.SendRequestAsync()).Value;
                 var receipt = await (
                     this.txMode switch
                     {
                         TransactionMode.TransferEth
                             => this.ethTransferService.TransferEtherAndWaitForReceiptAsync(
                                 this.initiateTransactionPanel.RecipientField.value,
-                                Convert.ToDecimal(this.initiateTransactionPanel.AmountField.value)
+                                Convert.ToDecimal(this.initiateTransactionPanel.AmountField.value),
+                                gasPriceGwei: (decimal)gasPrice
                             ),
                         TransactionMode.MintERC20
-                            => this.erc20Service.MintRequestAndWaitForReceiptAsync(
-                                this.initiateTransactionPanel.RecipientField.value,
-                                Web3.Convert.ToWei(
-                                    BigDecimal.Parse(
-                                        this.initiateTransactionPanel.AmountField.value
-                                    )
-                                )
-                            ),
+                            => this.erc20Service.ContractHandler.SendRequestAndWaitForReceiptAsync(
+                                new ERC20TokenDefinition.MintFunction
+                                {
+                                    To = this.initiateTransactionPanel.RecipientField.value,
+                                    Amount = Web3.Convert.ToWei(
+                                        BigDecimal.Parse(
+                                            this.initiateTransactionPanel.AmountField.value)),
+                                    GasPrice = gasPrice,
+                                }),
                         TransactionMode.TransferERC20
-                            => this.erc20Service.TransferRequestAndWaitForReceiptAsync(
-                                this.initiateTransactionPanel.RecipientField.value,
-                                Web3.Convert.ToWei(
-                                    BigDecimal.Parse(
-                                        this.initiateTransactionPanel.AmountField.value
-                                    )
-                                )
-                            ),
+                            => this.erc20Service.ContractHandler.SendRequestAndWaitForReceiptAsync(
+                                new ERC20TokenDefinition.TransferFunction
+                                {
+                                    To = this.initiateTransactionPanel.RecipientField.value,
+                                    Amount = Web3.Convert.ToWei(
+                                        BigDecimal.Parse(
+                                            this.initiateTransactionPanel.AmountField.value
+                                        )
+                                    ),
+                                    GasPrice = gasPrice,
+                                }),
                         TransactionMode.BurnERC20
-                            => this.erc20Service.BurnRequestAndWaitForReceiptAsync(
-                                Web3.Convert.ToWei(
-                                    BigDecimal.Parse(
-                                        this.initiateTransactionPanel.AmountField.value
-                                    )
-                                )
-                            ),
+                            => this.erc20Service.ContractHandler.SendRequestAndWaitForReceiptAsync(
+                                new ERC20TokenDefinition.BurnFunction()
+                                {
+                                    Amount = Web3.Convert.ToWei(
+                                        BigDecimal.Parse(
+                                            this.initiateTransactionPanel.AmountField.value
+                                        )),
+                                    GasPrice = gasPrice,
+                                }),
                         TransactionMode.MintERC1155
-                            => this.erc1155Service.MintRequestAndWaitForReceiptAsync(
-                                this.initiateTransactionPanel.RecipientField.value,
-                                21155,
-                                Web3.Convert.ToWei(
-                                    BigDecimal.Parse(
-                                        this.initiateTransactionPanel.AmountField.value
-                                    )
-                                ),
-                                Array.Empty<byte>()
-                            ),
+                            => this.erc1155Service.ContractHandler.SendRequestAndWaitForReceiptAsync(
+                                new ERC1155TokenDefinition.MintFunction
+                                {
+                                    Account = this.initiateTransactionPanel.RecipientField.value,
+                                    Id = 21155,
+                                    Amount = Web3.Convert.ToWei(
+                                        BigDecimal.Parse(
+                                            this.initiateTransactionPanel.AmountField.value
+                                        )
+                                    ),
+                                    GasPrice = gasPrice,
+                                    Data = Array.Empty<byte>(),
+                                }),
                         TransactionMode.TransferERC1155
-                            => this.erc1155Service.SafeTransferFromRequestAndWaitForReceiptAsync(
-                                this.account.Address,
-                                this.initiateTransactionPanel.RecipientField.value,
-                                21155,
-                                Web3.Convert.ToWei(
-                                    BigDecimal.Parse(
-                                        this.initiateTransactionPanel.AmountField.value
-                                    )
-                                ),
-                                System.Text.Encoding.UTF8.GetBytes("arbitrary data")
-                            ),
+                            => this.erc1155Service.ContractHandler.SendRequestAndWaitForReceiptAsync(
+                                new ERC1155TokenDefinition.SafeTransferFromFunction
+                                {
+                                    From = this.account.Address,
+                                    To = this.initiateTransactionPanel.RecipientField.value,
+                                    Id = 21155,
+                                    Amount = Web3.Convert.ToWei(
+                                        BigDecimal.Parse(
+                                            this.initiateTransactionPanel.AmountField.value
+                                        )
+                                    ),
+                                    GasPrice = gasPrice,
+                                    Data = System.Text.Encoding.UTF8.GetBytes("arbitrary data"),
+                                }),
                         TransactionMode.BurnERC1155
-                            => this.erc1155Service.BurnRequestAndWaitForReceiptAsync(
-                                this.initiateTransactionPanel.RecipientField.value,
-                                21155,
-                                Web3.Convert.ToWei(
-                                    BigDecimal.Parse(
-                                        this.initiateTransactionPanel.AmountField.value
-                                    )
-                                )
-                            ),
+                            => this.erc1155Service.ContractHandler.SendRequestAndWaitForReceiptAsync(
+                                new ERC1155TokenDefinition.BurnFunction
+                                {
+                                    Account = this.initiateTransactionPanel.RecipientField.value,
+                                    Id = 21155,
+                                    Value = Web3.Convert.ToWei(
+                                        BigDecimal.Parse(
+                                            this.initiateTransactionPanel.AmountField.value
+                                        )),
+                                    GasPrice = gasPrice,
+                                }),
                         _
                             => throw new InvalidOperationException(
                                 $"Unexpected {nameof(TransactionMode)} {this.txMode}."
