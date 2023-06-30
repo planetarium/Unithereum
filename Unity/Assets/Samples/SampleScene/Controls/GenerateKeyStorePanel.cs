@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using Nethereum.KeyStore;
 using Nethereum.Signer;

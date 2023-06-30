@@ -8,7 +8,7 @@ namespace Unithereum.Samples
         /// <summary>
         /// The ticker of the native token in EVM.
         /// </summary>
-        internal const string NativeTokenTicker = "GoerliETH";
+        internal const string NativeTokenTicker = "SepoliaETH";
 
         /// <summary>
         /// JSON-RPC Endpoint URL.
